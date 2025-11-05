@@ -7663,6 +7663,7 @@ fn render_blame_entry(
     )
 }
 
+#[derive(Debug)]
 pub(crate) struct LineWithInvisibles {
     fragments: SmallVec<[LineFragment; 1]>,
     invisibles: Vec<Invisible>,
@@ -9027,11 +9028,6 @@ impl Element for EditorElement {
                     let sticky_header_excerpt = if snapshot.buffer_snapshot().show_headers() {
                         snapshot.sticky_header_excerpt(scroll_position.y)
                     } else {
-                        // Ok, so we don't have show_headers in a normal buffer
-                        // print!("No show headers");
-                        // if snapshot.buffer_snapshot().is_singleton() {
-                        //     println!("Is singleton! We've figured it out!");
-                        // }
                         None
                     };
                     let sticky_header_excerpt_id =
