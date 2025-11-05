@@ -34,6 +34,7 @@ pub mod movement;
 mod persistence;
 mod rust_analyzer_ext;
 pub mod scroll;
+pub mod scroll_header;
 mod selections_collection;
 pub mod tasks;
 
@@ -117,8 +118,8 @@ use language::{
     AutoindentMode, BlockCommentConfig, BracketMatch, BracketPair, Buffer, BufferRow,
     BufferSnapshot, Capability, CharClassifier, CharKind, CharScopeContext, CodeLabel, CursorShape,
     DiagnosticEntryRef, DiffOptions, EditPredictionsMode, EditPreview, HighlightedText, IndentKind,
-    IndentSize, Language, OffsetRangeExt, Point, Runnable, RunnableRange, Selection, SelectionGoal,
-    TextObject, TransactionId, TreeSitterOptions, WordsQuery,
+    IndentSize, Language, OffsetRangeExt, OutlineItem, Point, Runnable, RunnableRange, Selection,
+    SelectionGoal, TextObject, TransactionId, TreeSitterOptions, WordsQuery,
     language_settings::{
         self, LspInsertMode, RewrapBehavior, WordsCompletionMode, all_language_settings,
         language_settings,
@@ -18450,6 +18451,27 @@ impl Editor {
                     .ok();
             });
         }
+    }
+
+    pub fn sticky_headers(&self, cx: &App) -> Option<Vec<OutlineItem<Point>>> {
+        let multi_buffer = self.buffer().read(cx);
+        let multi_buffer_snapshot = multi_buffer.snapshot(cx);
+        let multi_buffer_visible_start = self
+            .scroll_manager
+            .anchor()
+            .anchor
+            .to_point(&multi_buffer_snapshot);
+
+        if let Some((_, _, buffer)) = multi_buffer.read(cx).as_singleton() {
+            let outline_items = buffer.outline_items_as_points_containing(
+                Point::zero()..multi_buffer_visible_start, // TODO this range isn't quite right, can't start at the beginning
+                true,
+                self.style().map(|style| style.syntax.as_ref()),
+            );
+            return Some(outline_items);
+        }
+
+        None
     }
 
     pub fn fold_function_bodies(

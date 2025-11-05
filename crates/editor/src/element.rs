@@ -86,11 +86,11 @@ use std::{
 use sum_tree::Bias;
 use text::{BufferId, SelectionGoal};
 use theme::{ActiveTheme, Appearance, BufferLineHeight, PlayerColor};
+use ui::utils::ensure_minimum_contrast;
 use ui::{
     ButtonLike, ContextMenu, Indicator, KeyBinding, POPOVER_Y_PADDING, Tooltip, h_flex, prelude::*,
     right_click_menu, scrollbars::ShowScrollbar, text_for_keystroke,
 };
-use ui::{StickyItems, utils::ensure_minimum_contrast};
 use unicode_segmentation::UnicodeSegmentation;
 use util::post_inc;
 use util::{RangeExt, ResultExt, debug_panic};
@@ -3698,7 +3698,6 @@ impl EditorElement {
                         max_width: text_hitbox.size.width.max(*scroll_width),
                         editor_style: &self.style,
                     }))
-                    .child(Label::new("WOOO_CUSTOM_BLOCK"))
                     .into_any()
             }
 
@@ -3721,7 +3720,6 @@ impl EditorElement {
                         window,
                         cx,
                     ))
-                    .child(Label::new("WOOO_FOLDED_BUFFER"))
                     .into_any_element()
             }
 
@@ -3730,17 +3728,14 @@ impl EditorElement {
                 let mut result = v_flex().id(block_id).w_full();
 
                 result = result.child(
-                    h_flex()
-                        .relative()
-                        .child(
-                            div()
-                                .top(line_height / 2.)
-                                .absolute()
-                                .w_full()
-                                .h_px()
-                                .bg(color.border_variant),
-                        )
-                        .child(Label::new("WOOO_EXCERPT_BOUNDARY")),
+                    h_flex().relative().child(
+                        div()
+                            .top(line_height / 2.)
+                            .absolute()
+                            .w_full()
+                            .h_px()
+                            .bg(color.border_variant),
+                    ),
                 );
 
                 result.into_any()
@@ -3754,20 +3749,14 @@ impl EditorElement {
                 if sticky_header_excerpt_id != Some(excerpt.id) {
                     let selected = selected_buffer_ids.contains(&excerpt.buffer_id);
 
-                    result = result.child(
-                        div()
-                            .pr(editor_margins.right)
-                            .child(self.render_buffer_header(
-                                excerpt, false, selected, false, jump_data, window, cx,
-                            ))
-                            .child(Label::new("WOOO_BUFFER_HEADER")),
-                    );
+                    result = result.child(div().pr(editor_margins.right).child(
+                        self.render_buffer_header(
+                            excerpt, false, selected, false, jump_data, window, cx,
+                        ),
+                    ));
                 } else {
-                    result = result.child(
-                        div()
-                            .h(FILE_HEADER_HEIGHT as f32 * window.line_height())
-                            .child(Label::new("WOOO_BUFFER_HEADER_2")),
-                    );
+                    result =
+                        result.child(div().h(FILE_HEADER_HEIGHT as f32 * window.line_height()));
                 }
 
                 result.into_any()
@@ -4399,49 +4388,6 @@ impl EditorElement {
                 });
             }
         }
-    }
-
-    // Maybe something like
-    // fn layout_sticky_content_header()...
-    fn layout_sticky_content_header(
-        &self,
-        _line_height: Pixels,
-        right_margin: Pixels,
-        hitbox: &Hitbox,
-        window: &mut Window,
-        cx: &mut App,
-    ) -> AnyElement {
-        let _editor_bg_color = cx.theme().colors().editor_background;
-        let mut header = v_flex()
-            .w_full()
-            .relative()
-            // .child(
-            //     div()
-            //         // .w(available_width)
-            //         .h(FILE_HEADER_HEIGHT as f32 * line_height)
-            //         .bg(linear_gradient(
-            //             0.,
-            //             linear_color_stop(editor_bg_color.opacity(0.), 0.),
-            //             linear_color_stop(editor_bg_color, 0.6),
-            //         ))
-            //         .absolute()
-            //         .top_0(),
-            // )
-            .child(Label::new("Header"))
-            .into_any_element();
-
-        let available_width = hitbox.bounds.size.width - right_margin;
-
-        let mut origin = hitbox.origin;
-
-        let size = size(
-            AvailableSpace::Definite(available_width),
-            AvailableSpace::MinContent,
-        );
-
-        header.prepaint_as_root(origin, size, window, cx);
-
-        header
     }
 
     fn layout_sticky_buffer_header(
@@ -7717,7 +7663,6 @@ fn render_blame_entry(
     )
 }
 
-#[derive(Debug)]
 pub(crate) struct LineWithInvisibles {
     fragments: SmallVec<[LineFragment; 1]>,
     invisibles: Vec<Invisible>,
@@ -9131,50 +9076,22 @@ impl Element for EditorElement {
                         }
                     };
 
-                    let sticky_buffer_header = match sticky_header_excerpt {
-                        Some(sticky_header_excerpt) => {
-                            window.with_element_namespace("blocks", |window| {
-                                self.layout_sticky_buffer_header(
-                                    sticky_header_excerpt,
-                                    scroll_position,
-                                    line_height,
-                                    right_margin,
-                                    &snapshot,
-                                    &hitbox,
-                                    &selected_buffer_ids,
-                                    &blocks,
-                                    window,
-                                    cx,
-                                )
-                            })
-                        }
-                        None => window.with_element_namespace("blocks", |window| {
-                            self.layout_sticky_content_header(
+                    let sticky_buffer_header = sticky_header_excerpt.map(|sticky_header_excerpt| {
+                        window.with_element_namespace("blocks", |window| {
+                            self.layout_sticky_buffer_header(
+                                sticky_header_excerpt,
+                                scroll_position,
                                 line_height,
                                 right_margin,
+                                &snapshot,
                                 &hitbox,
+                                &selected_buffer_ids,
+                                &blocks,
                                 window,
                                 cx,
                             )
-                        }),
-                    };
-
-                    //     sticky_header_excerpt.map(|sticky_header_excerpt| {
-                    //     window.with_element_namespace("blocks", |window| {
-                    //         self.layout_sticky_buffer_header(
-                    //             sticky_header_excerpt,
-                    //             scroll_position,
-                    //             line_height,
-                    //             right_margin,
-                    //             &snapshot,
-                    //             &hitbox,
-                    //             &selected_buffer_ids,
-                    //             &blocks,
-                    //             window,
-                    //             cx,
-                    //         )
-                    //     })
-                    // });
+                        })
+                    });
 
                     let start_buffer_row =
                         MultiBufferRow(start_anchor.to_point(&snapshot.buffer_snapshot()).row);
@@ -9685,7 +9602,7 @@ impl Element for EditorElement {
                         crease_trailers,
                         tab_invisible,
                         space_invisible,
-                        sticky_buffer_header: Some(sticky_buffer_header),
+                        sticky_buffer_header,
                         expand_toggles,
                     }
                 })

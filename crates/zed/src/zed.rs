@@ -1056,7 +1056,8 @@ fn initialize_pane(
                     cx,
                 )
             });
-            toolbar.add_item(buffer_search_bar.clone(), window, cx);
+            let scroll_header = cx.new(|_cx| editor::scroll_header::ScrollHeader::new());
+            toolbar.add_item(scroll_header.clone(), window, cx);
             let quick_action_bar =
                 cx.new(|cx| QuickActionBar::new(buffer_search_bar, workspace, cx));
             toolbar.add_item(quick_action_bar, window, cx);
