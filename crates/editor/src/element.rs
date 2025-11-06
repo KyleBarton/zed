@@ -11560,3 +11560,32 @@ mod tests {
         }
     }
 }
+
+// TODO replace the instance functions in EditorElement with these
+pub(crate) fn max_line_number_width(
+    widest_line_number: u32,
+    style: &EditorStyle,
+    window: &mut Window,
+) -> Pixels {
+    let digit_count = widest_line_number.ilog10() + 1;
+    column_pixels(digit_count as usize, style, window)
+}
+
+pub(crate) fn column_pixels(column: usize, style: &EditorStyle, window: &mut Window) -> Pixels {
+    let font_size = style.text.font_size.to_pixels(window.rem_size());
+    let layout = window.text_system().shape_line(
+        SharedString::from(" ".repeat(column)),
+        font_size,
+        &[TextRun {
+            len: column,
+            font: style.text.font(),
+            color: Hsla::default(),
+            background_color: None,
+            underline: None,
+            strikethrough: None,
+        }],
+        None,
+    );
+
+    layout.width
+}
